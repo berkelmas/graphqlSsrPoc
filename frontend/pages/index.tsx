@@ -55,7 +55,6 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
                 ...existingMe,
                 trips: [...existingMe.trips, newTrip],
               };
-              console.log(newData);
               return newData;
             },
           },
@@ -92,7 +91,25 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
           </p>
           {myTrips.me.trips.findIndex((trip) => trip.id === item.id) === -1 && (
             <button
-              onClick={() => addTrip({ variables: { launchIds: [item.id] } })}
+              onClick={() =>
+                addTrip({
+                  variables: { launchIds: [item.id] },
+                  // OPTIMISTIC RESPONSE ADDED FOR UPDATE.
+                  optimisticResponse: {
+                    bookTrips: {
+                      message: "Success!",
+                      success: true,
+                      launches: [
+                        {
+                          id: item.id,
+                          __typename: "Launch",
+                          site: item.site,
+                        },
+                      ],
+                    },
+                  },
+                })
+              }
               style={{ marginLeft: 20 }}
             >
               BOOK NOW!
