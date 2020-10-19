@@ -5,12 +5,19 @@ import cookie from "cookie";
 import { GetServerSideProps } from "next";
 import { initializeApollo } from "../lib/apolloClient";
 import { GET_LAUNCHES_PAGINATION } from "../graphql/launches/queries/launches.query";
-import { useQuery, NetworkStatus, gql, useMutation } from "@apollo/client";
+import {
+  useQuery,
+  NetworkStatus,
+  gql,
+  useMutation,
+  useReactiveVar,
+} from "@apollo/client";
 import {
   IGetLaunches,
   IGetLaunchesVariables,
 } from "../graphql/launches/queries/types/launces.types";
 import { userInfo } from "../graphql/reactive-variables/auth.variables";
+import { addedLaunches } from "../graphql/reactive-variables/launch.variables";
 import { GET_MY_TRIPS } from "../graphql/auth/queries/my-trips.query";
 import {
   IGetMeVariables,
@@ -21,8 +28,10 @@ import {
   IAddTripData,
   IAddTripVariables,
 } from "../graphql/auth/mutations/types/add-trip.types";
+import { useApolloClient } from "@apollo/client";
 
 const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
+  const client = useApolloClient();
   const {
     data: latestLaunches,
     loading,
@@ -35,6 +44,7 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
     notifyOnNetworkStatusChange: true,
   });
   const { data: myTrips } = useQuery<IMe, IGetMeVariables>(GET_MY_TRIPS);
+  console.log(myTrips);
   const [addTrip] = useMutation<IAddTripData, IAddTripVariables>(
     ADD_TRIP_MUTATION,
     {
@@ -62,6 +72,8 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
       },
     }
   );
+  // NEED TO AS A DEPENDENCY FOR THE COMPONENT TO RERENDER.
+  const addedLaunchItems = useReactiveVar(addedLaunches);
 
   return (
     <div className={styles.container}>
@@ -77,6 +89,11 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
       )}
       <h2>Latest Launches</h2>
       <p>{userInfo().email}</p>
+      <p>ADDED LAUNCHES</p>
+      {addedLaunchItems.map((item) => (
+        <p key={item.id}>{item.id}</p>
+      ))}
+
       {latestLaunches?.launches?.launches.map((item) => (
         <div
           key={item.id}
@@ -86,10 +103,30 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
             alignItems: "center",
           }}
         >
+          {addedLaunchItems.findIndex((i) => i.id === item.id) === -1 && (
+            <button
+              style={{ marginRight: 10 }}
+              onClick={() => {
+                addedLaunches([...addedLaunches(), { id: item.id }]);
+              }}
+            >
+              ADD LOCAL
+            </button>
+          )}
+
+          <button
+            style={{ marginRight: 10 }}
+            onClick={() =>
+              addedLaunches(addedLaunchItems.filter((i) => i.id !== item.id))
+            }
+          >
+            REMOVE LOCAL
+          </button>
           <p>
             {item.id} - {item.site}
           </p>
-          {myTrips.me.trips.findIndex((trip) => trip.id === item.id) === -1 && (
+          {myTrips?.me?.trips.findIndex((trip) => trip.id === item.id) ===
+            -1 && (
             <button
               onClick={() =>
                 addTrip({
@@ -112,7 +149,7 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
               }
               style={{ marginLeft: 20 }}
             >
-              BOOK NOW!
+              BOOK NOW! (Server)
             </button>
           )}
         </div>

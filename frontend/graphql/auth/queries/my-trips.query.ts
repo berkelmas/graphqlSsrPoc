@@ -5,6 +5,7 @@ export const GET_MY_TRIPS = gql`
     me {
       email
       token
+      clientArrState @client
       trips {
         id
         site

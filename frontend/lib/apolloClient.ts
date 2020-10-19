@@ -20,7 +20,19 @@ function createApolloClient(ctx = null) {
       credentials: "include", // Additional fetch() options like `credentials` or `headers`
       fetch: ctx ? enchancedFetch : fetch,
     }),
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        User: {
+          fields: {
+            clientArrState: {
+              read(_, { variables }) {
+                return [];
+              },
+            },
+          },
+        },
+      },
+    }),
   });
 }
 
