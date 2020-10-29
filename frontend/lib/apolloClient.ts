@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+import { ApolloLink } from "apollo-link";
+import { GET_FAKE_DATA } from "../graphql/fake/queries/fake.query";
 
 let apolloClient;
 
@@ -9,30 +11,43 @@ function createApolloClient(ctx = null) {
       ...init,
       headers: {
         ...init.headers,
-        Cookie: ctx.req.headers.cookie,
+        ...(ctx.req?.headers?.cookie && { Cookie: ctx.req?.headers?.cookie }),
       },
     }).then((response) => response);
 
-  return new ApolloClient({
-    ssrMode: typeof window === "undefined",
-    link: new HttpLink({
-      uri: "http://localhost:4000", // Server URL (must be absolute)
-      credentials: "include", // Additional fetch() options like `credentials` or `headers`
-      fetch: ctx ? enchancedFetch : fetch,
-    }),
-    cache: new InMemoryCache({
-      typePolicies: {
-        User: {
-          fields: {
-            clientArrState: {
-              read(_, { variables }) {
-                return [];
-              },
+  const cache = new InMemoryCache({
+    typePolicies: {
+      User: {
+        fields: {
+          clientArrState: {
+            read(_, { variables }) {
+              return [];
             },
           },
         },
       },
-    }),
+    },
+  });
+
+  const mainBackendLink = new HttpLink({
+    uri: "http://localhost:4000", // Server URL (must be absolute)
+    credentials: "include", // Additional fetch() options like `credentials` or `headers`
+    fetch: ctx ? enchancedFetch : fetch,
+  });
+  const fakeBackendLink = new HttpLink({
+    uri: "http://localhost:5000", // Server URL (must be absolute)
+    credentials: "include", // Additional fetch() options like `credentials` or `headers`
+    fetch: ctx ? enchancedFetch : fetch,
+  });
+
+  return new ApolloClient({
+    ssrMode: typeof window === "undefined",
+    link: ApolloLink.split(
+      (operation) => operation.getContext().clientName === "fake-backend",
+      fakeBackendLink,
+      mainBackendLink
+    ),
+    cache,
   });
 }
 

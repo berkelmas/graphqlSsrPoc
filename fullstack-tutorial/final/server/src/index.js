@@ -28,12 +28,19 @@ const context = async ({ req }) => {
   let email;
   email = (req.headers && req.headers.authorization) || "";
   if (!email) {
-    const cookieObj = req.headers.cookie && cookie.parse(req.headers.cookie);
+    let cookieObj;
+    if (!req.headers.cookie) {
+      return { user: null };
+    }
+    try {
+      cookieObj = cookie.parse(req.headers.cookie);
+    } catch {
+      cookieObj = null;
+    }
     email = cookieObj ? cookieObj.email : "";
   }
   // console.log(req.headers.cookie && cookie.parse(req.headers.cookie));
   // const email = new Buffer(auth, "base64").toString("ascii");
-
   // if the email isn't formatted validly, return null for user
   if (!isEmail.validate(email)) return { user: null };
   // find a user by their email

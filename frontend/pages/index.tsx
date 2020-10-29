@@ -44,7 +44,6 @@ const Home: React.FC<{ authenticated: boolean }> = ({ authenticated }) => {
     notifyOnNetworkStatusChange: true,
   });
   const { data: myTrips } = useQuery<IMe, IGetMeVariables>(GET_MY_TRIPS);
-  console.log(myTrips);
   const [addTrip] = useMutation<IAddTripData, IAddTripVariables>(
     ADD_TRIP_MUTATION,
     {
@@ -198,13 +197,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   // REINITIALIZE APOLLO FOR EVERY SSR.
   const apolloClient = initializeApollo(null, context);
 
+  // await apolloClient.query({
+  //   query: GET_LAUNCHES_PAGINATION,
+  //   variables: { pageSize: 10, after: null },
+  // });
+
   await apolloClient.query({
     query: GET_LAUNCHES_PAGINATION,
     variables: { pageSize: 10, after: null },
   });
 
   if (localCookie && localCookie.email) {
-    await apolloClient.query({ query: GET_MY_TRIPS });
+    const data = await apolloClient.query({ query: GET_MY_TRIPS });
+    console.log(data);
     return {
       props: {
         authenticated: true,
